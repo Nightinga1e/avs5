@@ -7,11 +7,27 @@
 
 clock_t start, stop;
 long int *Y,**X,*R,n,m;
-pthread_t *thread;
+int fl = 0;
+pthread_t *thread,*threadfill;
+
+void* fill(void *arg){
+	
+	long int num = *(int*) arg;
+
+//	printf(" Thread # %ld \n", num);
+	for (long int i = num; i<n;i=i+m){
+		Y[i] = rand()%10;
+		R[i] = 0;
+		for (long int j = 0; j<n; j++){
+			X[i][j] = rand()%10;
+		}
+	}
+	return NULL;
+}
 
 void* vec_mat(void *arg){
-	int num = *(int*) arg;
-	printf(" Thread # %ld \n", num);
+	long int num = *(int*) arg;
+//	printf(" Thread # %ld \n", num);
 
 	for(long int i = num; i<n; i=i+m)
 		for(long int j =0; j<n; j++){
@@ -29,26 +45,20 @@ int main(){
 	scanf("%lld", &n);
 	printf("\n Enter number of threads: \n");
 	scanf("%lld", &m);
-	Y = (long int*)malloc(n*sizeof(long int*));
+	Y = (long int*)malloc(n*sizeof(long int));
 	thread = (pthread_t*)malloc(m*sizeof(pthread_t));
-	X = (long int**)malloc(n*sizeof(long int*));
-	R = (long int*)malloc(n*sizeof(long int*));
+	threadfill = (pthread_t*)malloc(m*sizeof(pthread_t));
+	X = (long int**)malloc(n*sizeof(long int));
+	R = (long int*)malloc(n*sizeof(long int));
 	for( int i = 0; i<n; i++){
 		X[i] = (long int*)malloc(n*sizeof(long int));
 	}
 	for( long int i = 0; i<m; i++){
 		thread[i] = 0;
-	}
-	for (long int i = 0; i<n;i++){
-		for (long int j = 0; j<n; j++){
-			Y[i] = rand()%10;
-			X[i][j] = rand()%10;
-			R[i] = 0;
-		}
+		threadfill[i] = 0;
 	}
 
-
-/*
+/*output
 	for (long int i=0;i<n;i++){
 		printf("%lld ", Y[i]);
 	}
@@ -59,33 +69,37 @@ int main(){
 			printf("%lld ", X[i][j]);
 	}
 	printf("\n\n");
-*/
+output*/ 
+start = clock();
+	for (long int num=0; num<m; num++){
+		long int *filltid;
+		filltid = (long int *) malloc(sizeof(long int));
+		*filltid = num;
+		pthread_create(&threadfill[num], NULL, fill, (void *) filltid);
+	}
+	for (long int num=0; num<m; num++){
+		pthread_join(threadfill[num], NULL);
+	}
 
-
-	for (int num=0; num<m; num++){
-		int *tid;
-		tid = (int *) malloc(sizeof(int));
+	for (long int num=0; num<m; num++){
+		long int *tid;
+		tid = (long int *) malloc(sizeof(long int));
 		*tid = num;
 		pthread_create(&thread[num], NULL, vec_mat, (void *) tid);
 	}
 
-	for (int num=0; num<m; num++){
+	for (long int num=0; num<m; num++){
 		pthread_join(thread[num], NULL);
 	}
-
-
-/*
+stop = clock();
+/* result
 for (long int i =0; i<n; i++){
 		printf("%lld ", R[i]);
 	}
 	printf("\n\n");
-*/
+result*/
 
-//	start = clock();
-//	vec_mat(X,Y,R,n,m);
-//	stop = clock();
-
-//	double timeresult_clock = (double)(stop-start)/CLOCKS_PER_SEC;
-//	printf("\n\n timeresult = %6.10lf \n", timeresult_clock);
+	double timeresult_clock = (double)(stop-start)/CLOCKS_PER_SEC;
+	printf("\n\n timeresult = %6.10lf \n", timeresult_clock);
 	return 0;
 }
