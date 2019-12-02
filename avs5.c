@@ -34,7 +34,7 @@ void* vec_mat(void *arg){
 			R[i] += X[i][j] * Y[j]; 
 	}
 
-	printf("\n\n");
+//	printf("\n\n");
 	return NULL;
 }
 
@@ -99,7 +99,7 @@ for (long int i =0; i<n; i++){
 	printf("\n\n");
 result*/
 
-	double timeresult_clock = (double)(stop-start)/CLOCKS_PER_SEC;
+	double timeresult_clock = (double)(stop-start)/(CLOCKS_PER_SEC*m);
 	printf("\n\n timeresult = %6.10lf \n", timeresult_clock);
 	return 0;
 }
