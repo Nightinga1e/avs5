@@ -6,59 +6,79 @@
 #include <pthread.h>
 
 clock_t start, stop;
-long int *Y,**X,*R,n,m;
-int fl = 0;
-pthread_t *thread,*threadfill;
-
-void* fill(void *arg){
-	
-	long int num = *(int*) arg;
-
-//	printf(" Thread # %ld \n", num);
-	for (long int i = num; i<n;i=i+m){
-		Y[i] = rand()%10;
-		R[i] = 0;
-		for (long int j = 0; j<n; j++){
-			X[i][j] = rand()%10;
-		}
-	}
-	return NULL;
-}
+int *Y,**X,*R,n,m,check;
+pthread_mutex_t mutex;
 
 void* vec_mat(void *arg){
-	long int num = *(int*) arg;
-//	printf(" Thread # %ld \n", num);
-
-	for(long int i = num; i<n; i=i+m)
-		for(long int j =0; j<n; j++){
-			R[i] += X[i][j] * Y[j]; 
+  int fl = 0;
+  	srand(time(0));
+	int num = *(int*) arg;
+	int start = num * (n/m);
+	int end = (num+1)*(n/m);
+	//	printf(" Thread # %ld \n", num);
+	//	printf(" start = %d , end = %d \n",start,end);
+	pthread_mutex_lock(&mutex);
+	for (int i = start; i<end;i++){
+	  //	  printf("test %d \n", i);
+	  Y[i] = rand()%10;
+	  R[i] = 0;
+	  for (int j = 0; j<n; j++){
+	    X[i][j] = rand()%10;
+	  }
 	}
-
+	pthread_mutex_unlock(&mutex);
+	check++;
+	while(fl==0){
+	  if(check==m){
+	    pthread_mutex_lock(&mutex);
+	    for (int i = start; i<end;i++)
+		for(int j =0; j<n; j++){
+		  R[i] += X[i][j] * Y[j]; 
+		}
+	    pthread_mutex_unlock(&mutex);
+	    fl=1;
+	  }
+	}
 //	printf("\n\n");
 	return NULL;
 }
 
 int main(){
-	long int status,status_addr;
-	srand(time(0));
+  check = 0;
+	int status,status_addr;
+	pthread_t *thread;
+
 	printf("\n Enter matrix/vector size: \n");
 	scanf("%lld", &n);
 	printf("\n Enter number of threads: \n");
 	scanf("%lld", &m);
-	Y = (long int*)malloc(n*sizeof(long int));
+	Y = (int*)malloc(n*sizeof(int));
 	thread = (pthread_t*)malloc(m*sizeof(pthread_t));
-	threadfill = (pthread_t*)malloc(m*sizeof(pthread_t));
-	X = (long int**)malloc(n*sizeof(long int));
-	R = (long int*)malloc(n*sizeof(long int));
-	for( int i = 0; i<n; i++){
-		X[i] = (long int*)malloc(n*sizeof(long int));
+	X = (int**)malloc(n*sizeof(int*));
+	R = (int*)malloc(n*sizeof(int));
+	for(int i = 0; i<n; i++){
+		X[i] = (int*)malloc(n*sizeof(int));
 	}
-	for( long int i = 0; i<m; i++){
+	/*
+	for(int i = 0; i<m; i++){
 		thread[i] = 0;
 		threadfill[i] = 0;
+		}*/
+
+start = clock();
+	for (int num=0; num<m; num++){
+		int *tid;
+		tid = (int *) malloc(sizeof(int));
+		*tid = num;
+		pthread_create(&thread[num], NULL, vec_mat, (void *) tid);
 	}
 
-/*output
+	for (int num=0; num<m; num++){
+		pthread_join(thread[num], NULL);
+	}
+stop = clock();
+
+/*
 	for (long int i=0;i<n;i++){
 		printf("%lld ", Y[i]);
 	}
@@ -69,37 +89,16 @@ int main(){
 			printf("%lld ", X[i][j]);
 	}
 	printf("\n\n");
-output*/ 
-start = clock();
-	for (long int num=0; num<m; num++){
-		long int *filltid;
-		filltid = (long int *) malloc(sizeof(long int));
-		*filltid = num;
-		pthread_create(&threadfill[num], NULL, fill, (void *) filltid);
-	}
-	for (long int num=0; num<m; num++){
-		pthread_join(threadfill[num], NULL);
-	}
+   
 
-	for (long int num=0; num<m; num++){
-		long int *tid;
-		tid = (long int *) malloc(sizeof(long int));
-		*tid = num;
-		pthread_create(&thread[num], NULL, vec_mat, (void *) tid);
-	}
-
-	for (long int num=0; num<m; num++){
-		pthread_join(thread[num], NULL);
-	}
-stop = clock();
-/* result
 for (long int i =0; i<n; i++){
 		printf("%lld ", R[i]);
 	}
 	printf("\n\n");
-result*/
+*/
 
 	double timeresult_clock = (double)(stop-start)/(CLOCKS_PER_SEC*m);
 	printf("\n\n timeresult = %6.10lf \n", timeresult_clock);
+	pthread_mutex_destroy(&mutex);
 	return 0;
 }
